@@ -25,7 +25,7 @@ app.post("/chat", (req, res) => {
     // const pythonPath = path.join(__dirname, "venv", "bin", "python3");
 
     // 개발 테스트 시 사용하는 절대 경로
-    const pythonPath = path.join(__dirname, "venv", "Scripts", "python3");
+    const pythonPath = path.join(__dirname, "venv", "Scripts", "python.exe");
 
     // Spawn the Python process with the correct argument
     const result = spawn(pythonPath, [scriptPath, sendedQuestion]);
@@ -55,6 +55,33 @@ app.post("/chat", (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
+});
+
+app.post("/weather", (req, res) => {
+  const requestedDate = req.body.date; // 사용자가 입력한 날짜
+
+  const execPython = path.join(__dirname, "weather.py"); // 파이썬 파일 경로
+  const pythonPath = path.join(__dirname, "venv", "Scripts", "python.exe"); // 파이썬 실행 경로
+  const net = spawn(pythonPath, [execPython, requestedDate]);
+
+  let output = "";
+
+  // 파이썬 파일의 출력을 받아옴
+  net.stdout.on("data", function (data) {
+    output += data.toString();
+  });
+
+  net.on("close", (code) => {
+    if (code === 0) {
+      res.status(200).json({ weather: output }); // 성공적으로 데이터를 받았을 때 응답
+    } else {
+      res.status(500).send("Something went wrong");
+    }
+  });
+
+  net.stderr.on("data", (data) => {
+    console.error(`stderr: ${data}`);
+  });
 });
 
 app.use(require("./routes/getRoutes"));
